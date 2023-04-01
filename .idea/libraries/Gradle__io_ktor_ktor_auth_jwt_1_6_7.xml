@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: io.ktor:ktor-auth-jwt:1.6.7">
+  <library name="Gradle: io.ktor:ktor-auth-jwt:1.6.7" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-auth-jwt/1.6.7/eec7fae8083c96db0b6f1c0833a2556c42763604/ktor-auth-jwt-jvm-1.6.7.jar!/" />
     </CLASSES>

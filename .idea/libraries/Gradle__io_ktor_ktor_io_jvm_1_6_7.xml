@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: io.ktor:ktor-io-jvm:1.6.7">
+  <library name="Gradle: io.ktor:ktor-io-jvm:1.6.7" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-io-jvm/1.6.7/375001bb92e11a788f93a58523ed73d9a0774e02/ktor-io-jvm-1.6.7.jar!/" />
     </CLASSES>

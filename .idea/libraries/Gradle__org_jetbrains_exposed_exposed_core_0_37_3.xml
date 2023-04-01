@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.jetbrains.exposed:exposed-core:0.37.3">
+  <library name="Gradle: org.jetbrains.exposed:exposed-core:0.37.3" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-core/0.37.3/dba4c472bdfa97fa15998231c96e55c8a96f06a5/exposed-core-0.37.3.jar!/" />
     </CLASSES>

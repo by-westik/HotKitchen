@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: org.jetbrains.exposed:exposed-jdbc:0.37.3">
+  <library name="Gradle: org.jetbrains.exposed:exposed-jdbc:0.37.3" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-jdbc/0.37.3/cecf1f47ce48560fd6cb4030fea3555f73fa0f93/exposed-jdbc-0.37.3.jar!/" />
     </CLASSES>

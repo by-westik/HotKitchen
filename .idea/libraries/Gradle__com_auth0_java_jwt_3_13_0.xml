@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: com.auth0:java-jwt:3.13.0">
+  <library name="Gradle: com.auth0:java-jwt:3.13.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.auth0/java-jwt/3.13.0/8d497b412a05214bec3cee45e1c0d56e5b11aa66/java-jwt-3.13.0.jar!/" />
     </CLASSES>

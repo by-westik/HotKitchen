@@ -176,4 +176,7 @@ files:
   learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22603#comment
 status: Solved
+feedback:
+  message: Congratulations!
+  time: "Thu, 30 Mar 2023 13:26:58 UTC"
 record: 1

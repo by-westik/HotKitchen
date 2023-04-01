@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: net.java.dev.jna:jna-platform:5.5.0">
+  <library name="Gradle: net.java.dev.jna:jna-platform:5.5.0" external-system-id="GRADLE">
     <CLASSES>
       <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna-platform/5.5.0/af38e7c4d0fc73c23ecd785443705bfdee5b90bf/jna-platform-5.5.0.jar!/" />
     </CLASSES>

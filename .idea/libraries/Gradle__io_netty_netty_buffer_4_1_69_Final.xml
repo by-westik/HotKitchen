@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="Gradle: io.netty:netty-buffer:4.1.69.Final">
+  <library name="Gradle: io.netty:netty-buffer:4.1.69.Final" external-system-id="GRADLE">
     <ANNOTATIONS>
       <root url="jar://$MAVEN_REPOSITORY$/org/jetbrains/externalAnnotations/io/netty/netty-buffer/4.1.27.Final-an1/netty-buffer-4.1.27.Final-an1-annotations.zip!/" />
     </ANNOTATIONS>
