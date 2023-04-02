@@ -298,10 +298,19 @@ files:
 - name: src/database/DatabaseController.kt
   visible: true
   learner_created: true
-- name: src/Routing.kt
+- name: src/Test.http
   visible: true
   learner_created: true
-- name: src/Test.http
+- name: src/routing/Routing.kt
+  visible: true
+  learner_created: true
+- name: src/utils/TokenUtils.kt
+  visible: true
+  learner_created: true
+- name: src/data/ResponseToken.kt
+  visible: true
+  learner_created: true
+- name: src/utils/AuthUtils.kt
   visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22604#comment

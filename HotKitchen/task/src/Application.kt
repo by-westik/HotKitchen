@@ -3,13 +3,12 @@ package hotkitchen
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import hotkitchen.database.configureDatabase
+import hotkitchen.routing.configureRouting
 import io.ktor.application.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
 import io.ktor.features.*
 import io.ktor.serialization.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
 
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
@@ -19,7 +18,6 @@ fun main() {
 }*/
 
 fun Application.module(testing: Boolean = false) {
-    install(ContentNegotiation) { json() }
     install(Authentication) {
         jwt {
             val secret = environment.config.property("jwt.secret").getString()
@@ -37,4 +35,5 @@ fun Application.module(testing: Boolean = false) {
     }
     configureRouting()
     configureDatabase()
+    install(ContentNegotiation) { json() }
 }

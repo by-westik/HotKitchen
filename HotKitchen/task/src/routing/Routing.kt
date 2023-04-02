@@ -1,9 +1,13 @@
-package hotkitchen
+package hotkitchen.routing
 
 import hotkitchen.data.ResponseStatus
+import hotkitchen.data.ResponseToken
 import hotkitchen.data.SignIn
 import hotkitchen.data.User
 import hotkitchen.database.DatabaseController
+import hotkitchen.utils.checkEmail
+import hotkitchen.utils.checkPassword
+import hotkitchen.utils.generateToken
 import io.ktor.application.*
 import io.ktor.http.*
 import io.ktor.request.*
@@ -17,11 +21,17 @@ fun Application.configureRouting() {
         }
         post("/signup") {
             val user = call.receive<User>()
-            if (DatabaseController.getUserByEmail(user.email) == null) {
-                DatabaseController.saveUser(user)
-                call.respond(HttpStatusCode.OK, ResponseStatus("Signed Up"))
+            if (!checkEmail(user.email)) {
+                call.respond(HttpStatusCode.Forbidden, ResponseStatus("Invalid email"))
+            } else if (checkPassword(user.password)) {
+                call.respond(HttpStatusCode.Forbidden, ResponseStatus("Invalid password"))
             } else {
-                call.respond(HttpStatusCode.Forbidden, ResponseStatus("Registration failed"))
+                if (DatabaseController.getUserByEmail(user.email) == null) {
+                    DatabaseController.saveUser(user)
+                    call.respond(HttpStatusCode.OK, ResponseToken(generateToken(user)))
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, ResponseStatus("User already exists"))
+                }
             }
         }
 
