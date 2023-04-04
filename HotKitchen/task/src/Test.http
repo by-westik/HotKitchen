@@ -2,7 +2,7 @@ POST http://localhost:28852/signup
 Content-Type: application/json
 
 {
-    "email":"true11122@mail.ru",
+    "email":"t2333yry@mail.ru",
     "userType":"stuff",
-    "password": "qwerrdtrt1"
+    "password": ""
 }

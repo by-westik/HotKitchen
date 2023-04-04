@@ -314,13 +314,8 @@ files:
   visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22604#comment
-status: Failed
+status: Solved
 feedback:
-  message: |-
-    Wrong answer in test #1
-
-    Invalid email is not handled correctly.
-    Wrong response message or status code.
-    @example.com is invalid email
-  time: "Sun, 02 Apr 2023 09:39:52 UTC"
+  message: Congratulations!
+  time: "Tue, 04 Apr 2023 19:04:39 UTC"
 record: 2

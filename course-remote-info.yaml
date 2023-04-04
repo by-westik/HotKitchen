@@ -3,14 +3,14 @@ hyperskill_project:
   ide_files: https://stepik.org/media/attachments/lesson/789444/additional_files.json
   is_template_based: false
   use_ide: true
-update_date: "Sun, 02 Apr 2023 09:10:47 UTC"
+update_date: "Tue, 04 Apr 2023 17:52:51 UTC"
 stages:
 - id: 1480
   step: 22603
   is_completed: true
 - id: 1481
   step: 22604
-  is_completed: false
+  is_completed: true
 - id: 1482
   step: 22605
   is_completed: false
@@ -98,16 +98,16 @@ topics:
     theory_id: 4419
   - title: Naming variables
     theory_id: 4389
+  - title: The classification of basic types
+    theory_id: 4455
+  - title: Type conversion
+    theory_id: 4672
   - title: Standard output
     theory_id: 4425
   - title: Invoking functions
     theory_id: 4575
   - title: Standard input with Java Scanner
     theory_id: 4445
-  - title: The classification of basic types
-    theory_id: 4455
-  - title: Type conversion
-    theory_id: 4672
   - title: Reading data with a readln
     theory_id: 11224
   - title: String basics
