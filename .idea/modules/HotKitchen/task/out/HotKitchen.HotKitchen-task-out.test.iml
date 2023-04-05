@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module external.linked.project.id=":HotKitchen-task-build-reports-tests:test" external.linked.project.path="$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests" external.root.project.path="$MODULE_DIR$/../../../../../../.." external.system.id="GRADLE" external.system.module.group="HotKitchen" external.system.module.type="sourceSet" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
+<module external.linked.project.id=":HotKitchen-task-out:test" external.linked.project.path="$MODULE_DIR$/../../../../../HotKitchen/task/out" external.root.project.path="$MODULE_DIR$/../../../../.." external.system.id="GRADLE" external.system.module.group="HotKitchen" external.system.module.type="sourceSet" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
   <component name="FacetManager">
-    <facet type="kotlin-language" name="Kotlin">
+    <facet external-system-id="GRADLE" type="kotlin-language" name="Kotlin">
       <configuration version="5" platform="JVM 1.8" allPlatforms="JVM [1.8]" useProjectSettings="false">
-        <additionalVisibleModuleNames>:HotKitchen-task-build-reports-tests:main</additionalVisibleModuleNames>
+        <additionalVisibleModuleNames>:HotKitchen-task-out:main</additionalVisibleModuleNames>
         <compilerSettings>
           <option name="additionalArguments" value="-Xallow-no-source-files" />
         </compilerSettings>
@@ -81,18 +81,18 @@
                 <arg>$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.eclipse.jetty/jetty-util/9.4.42.v20210604/16b116e9982c2037fd4bf05ce2525ccd5917eb9c/jetty-util-9.4.42.v20210604.jar</arg>
               </args>
             </stringArg>
-            <stringArg name="destination" arg="$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/build/classes/kotlin/test" />
+            <stringArg name="destination" arg="$MODULE_DIR$/../../../../../HotKitchen/task/out/build/classes/kotlin/test" />
             <stringArg name="jvmTarget" arg="1.8" />
-            <stringArg name="moduleName" arg="HotKitchen-task-build-reports-tests" />
+            <stringArg name="moduleName" arg="HotKitchen-task-out" />
             <stringArg name="apiVersion" arg="1.6" />
             <stringArg name="languageVersion" arg="1.6" />
           </stringArguments>
           <arrayArguments>
             <arrayArg name="friendPaths">
               <args>
-                <arg>$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/build/classes/java/main</arg>
-                <arg>$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/build/classes/kotlin/main</arg>
-                <arg>$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/build/libs/HotKitchen-task-build-reports-tests.jar</arg>
+                <arg>$MODULE_DIR$/../../../../../HotKitchen/task/out/build/classes/java/main</arg>
+                <arg>$MODULE_DIR$/../../../../../HotKitchen/task/out/build/classes/kotlin/main</arg>
+                <arg>$MODULE_DIR$/../../../../../HotKitchen/task/out/build/libs/HotKitchen-task-out.jar</arg>
               </args>
             </arrayArg>
             <arrayArg name="pluginClasspaths">
@@ -117,15 +117,15 @@
     </facet>
   </component>
   <component name="NewModuleRootManager">
-    <output-test url="file://$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/out/test/classes" />
+    <output-test url="file://$MODULE_DIR$/../../../../../HotKitchen/task/out/out/test/classes" />
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/src/test" />
-    <content url="file://$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/test">
-      <sourceFolder url="file://$MODULE_DIR$/../../../../../../../HotKitchen/task/build/reports/tests/test" isTestSource="true" />
+    <content url="file://$MODULE_DIR$/../../../../../HotKitchen/task/out/src/test" />
+    <content url="file://$MODULE_DIR$/../../../../../HotKitchen/task/out/test">
+      <sourceFolder url="file://$MODULE_DIR$/../../../../../HotKitchen/task/out/test" isTestSource="true" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="HotKitchen.HotKitchen-task-build-reports-tests.main" />
+    <orderEntry type="module" module-name="HotKitchen.HotKitchen-task-out.main" />
     <orderEntry type="module" module-name="HotKitchen.util.main" />
     <orderEntry type="module" module-name="HotKitchen.util.test" production-on-test="" />
     <orderEntry type="library" name="Gradle: io.ktor:ktor-server-test-host:1.6.7" level="project" />
@@ -199,5 +199,5 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: net.java.dev.jna:jna:5.5.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.easytesting:fest-util:1.2.5" level="project" />
   </component>
-  <component name="TestModuleProperties" production-module="HotKitchen.HotKitchen-task-build-reports-tests.main" />
+  <component name="TestModuleProperties" production-module="HotKitchen.HotKitchen-task-out.main" />
 </module>

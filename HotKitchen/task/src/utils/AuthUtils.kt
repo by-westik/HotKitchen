@@ -1,6 +1,7 @@
 package hotkitchen.utils
 
 class ForbiddenException(message: String?) : Exception(message)
+class BadRequestException() : Exception()
 val emailRegex = """(^[a-zA-Z0-9_+-.]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+${'$'})"""
 fun checkEmail(email: String) {
     if (!email.matches(emailRegex.toRegex()))

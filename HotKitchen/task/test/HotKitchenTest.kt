@@ -16,95 +16,70 @@ class HotKitchenTest : StageTest<Any>() {
     private data class Credentials(var email: String, var userType: String, var password: String)
 
     @Serializable
-    private data class SignUpCredentials(var email: String, var password: String)
-
-    @Serializable
     private data class Token(val token: String)
 
-    private object Messages {
-        const val invalidEmail = """{"status":"Invalid email"}"""
-        const val invalidPassword = """{"status":"Invalid password"}"""
-        const val userAlreadyExists = """{"status":"User already exists"}"""
-        const val invalidEmailPassword = """{"status":"Invalid email or password"}"""
-    }
+    @Serializable
+    data class Meal(
+        val mealId: Int,
+        val title: String,
+        val price: Float,
+        val imageUrl: String,
+        val categoryIds: List<Int>
+    )
 
-    private val time = System.currentTimeMillis().toString()
-    private val wrongEmails =
-        arrayOf(
-            "@example.com",
-            time,
-            "$time@gmail",
-            "$time@mail@com",
-            "$time.gmail",
-            "$time.mail.ru",
-            "$time@yandex.ru@why",
-            "$time@yandex@ru.why",
-            "@which$time@gmail.com",
-            "$time@gmail",
-            "$time#lala@mail.us",
-            "Goose Smith <$time@example.com>",
-            "$time@example.com (Duck Smith)"
-        )
-    private val wrongPasswords =
-        arrayOf(
-            "",
-            "ad12",
-            "ad124",
-            "password",
-            "0123456",
-            "paaaaaaaaaaaasssssword",
-            "11113123123123123"
-        )
+    @Serializable
+    data class Category(
+        val categoryId: Int,
+        val title: String,
+        val description: String
+    )
+
+    private val time = System.currentTimeMillis()
     private val jwtRegex = """^[a-zA-Z0-9]+?\.[a-zA-Z0-9]+?\..+""".toRegex()
-    private val currentCredentials = Credentials("$time@mail.com", "client", "password$time")
-    private lateinit var signInToken: String
-    private lateinit var signUpToken: String
+    private val accessDenied = """{"status":"Access denied"}"""
+    private val currentCredentialsClient = Credentials("$time@client.com", "client", "password$time")
+    private val currentCredentialsStaff = Credentials("$time@staff.com", "staff", "password$time")
+    private val currentMeal = Meal(
+        time.toInt(),
+        "$time title",
+        (time.toInt() % 100).toFloat(),
+        "image $time url",
+        listOf((0..10).random(), (0..10).random(), (0..10).random())
+    )
+    private val currentCategory = Category(
+        time.toInt(),
+        "$time TITLE",
+        "Awesome $time description"
+    )
+    private lateinit var signInTokenClient: String
+    private lateinit var signInTokenStaff: String
 
 
     @DynamicTest(order = 1)
-    fun checkWrongEmail(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        for (email in wrongEmails) {
-            with(handleRequest(HttpMethod.Post, "/signup") {
-                setBody(Json.encodeToString(Credentials(email, "client", "password123")))
-                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            }) {
-                if (response.content != Messages.invalidEmail || response.status() != HttpStatusCode.Forbidden)
-                    return@withApplication CheckResult.wrong("Invalid email is not handled correctly.\nWrong response message or status code.\n$email is invalid email")
-            }
-        }
-        return@withApplication CheckResult.correct()
-    }
-
-    @DynamicTest(order = 2)
-    fun checkWrongPassword(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        for (password in wrongPasswords) {
-            with(handleRequest(HttpMethod.Post, "/signup") {
-                setBody(Json.encodeToString(Credentials(currentCredentials.email, "client", password)))
-                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            }) {
-                if (response.content != Messages.invalidPassword || response.status() != HttpStatusCode.Forbidden)
-                    return@withApplication CheckResult.wrong("Invalid password is not handled correctly.\nWrong response message or status code.\n$password is invalid password")
-            }
-        }
-        return@withApplication CheckResult.correct()
-    }
-
-    @DynamicTest(order = 3)
-    fun getSignInJWTToken(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
+    fun getSignInJWTToken(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
         with(handleRequest(HttpMethod.Post, "/signup") {
-            setBody(Json.encodeToString(currentCredentials))
+            setBody(Json.encodeToString(currentCredentialsClient))
             addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
             try {
                 val principal = Json.decodeFromString<Token>(response.content ?: "")
-                signInToken = principal.token
-                if (!signInToken.matches(jwtRegex) || signInToken.contains(currentCredentials.email))
+                signInTokenClient = principal.token
+                if (!signInTokenClient.matches(jwtRegex) || signInTokenClient.contains(currentCredentialsClient.email))
+                    return@withApplication CheckResult.wrong("Invalid JWT token")
+            } catch (e: Exception) {
+                return@withApplication CheckResult.wrong("Cannot get token form /signin request")
+            }
+        }
+        with(handleRequest(HttpMethod.Post, "/signup") {
+            setBody(Json.encodeToString(currentCredentialsStaff))
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+        }) {
+            try {
+                val principal = Json.decodeFromString<Token>(response.content ?: "")
+                signInTokenStaff = principal.token
+                if (!signInTokenStaff.matches(jwtRegex) || signInTokenStaff.contains(currentCredentialsStaff.email))
                     return@withApplication CheckResult.wrong("Invalid JWT token")
             } catch (e: Exception) {
                 return@withApplication CheckResult.wrong("Cannot get token form /signin request")
@@ -113,99 +88,187 @@ class HotKitchenTest : StageTest<Any>() {
         return@withApplication CheckResult.correct()
     }
 
-    @DynamicTest(order = 4)
-    fun registerExistingUser(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        with(handleRequest(HttpMethod.Post, "/signup") {
-            setBody(Json.encodeToString(currentCredentials))
+    @DynamicTest(order = 2)
+    fun correctValidation(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Get, "/validate") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+        }) {
+            if (response.status() != HttpStatusCode.OK || response.content != "Hello, ${currentCredentialsClient.userType} ${currentCredentialsClient.email}") return@withApplication CheckResult.wrong(
+                "Token validation with signin token failed.\nStatus code should be \"200 OK\"\nMessage should be \"Hello, ${currentCredentialsClient.userType} ${currentCredentialsClient.email}\""
+            )
+        }
+        with(handleRequest(HttpMethod.Get, "/validate") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenStaff")
+        }) {
+            if (response.status() != HttpStatusCode.OK || response.content != "Hello, ${currentCredentialsStaff.userType} ${currentCredentialsStaff.email}") return@withApplication CheckResult.wrong(
+                "Token validation with signin token failed.\nStatus code should be \"200 OK\"\nMessage should be \"Hello, ${currentCredentialsStaff.userType} ${currentCredentialsStaff.email}\""
+            )
+        }
+        return@withApplication CheckResult.correct()
+    }
+
+    @DynamicTest(order = 3)
+    fun accessDeniedAdditionMeal(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/meals") {
+            setBody(Json.encodeToString(currentMeal))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
             addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
-            if (response.content != Messages.userAlreadyExists || response.status() != HttpStatusCode.Forbidden)
-                return@withApplication CheckResult.wrong("An existing user is registered. Wrong response message or status code.")
+            if (response.status() != HttpStatusCode.Forbidden || response.content != accessDenied)
+                return@withApplication CheckResult.wrong("Only staff can add meal. Wrong response or status code")
+        }
+        return@withApplication CheckResult.correct()
+    }
+
+    @DynamicTest(order = 4)
+    fun accessDeniedAdditionCategory(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/categories") {
+            setBody(Json.encodeToString(currentCategory))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+        }) {
+            if (response.status() != HttpStatusCode.Forbidden || response.content != accessDenied)
+                return@withApplication CheckResult.wrong("Only staff can add category. Wrong response or status code")
         }
         return@withApplication CheckResult.correct()
     }
 
     @DynamicTest(order = 5)
-    fun wrongAuthorization(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        with(handleRequest(HttpMethod.Post, "/signin") {
-            setBody(Json.encodeToString(SignUpCredentials("why?does?this?email?exists", currentCredentials.password)))
+    fun successAdditionMeal(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/meals") {
+            setBody(Json.encodeToString(currentMeal))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenStaff")
             addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
-            if (response.content != Messages.invalidEmailPassword || response.status() != HttpStatusCode.Forbidden)
-                return@withApplication CheckResult.wrong("Error when authorizing a user using a wrong email. Wrong response message or status code.")
-        }
-        with(handleRequest(HttpMethod.Post, "/signin") {
-            setBody(Json.encodeToString(SignUpCredentials(currentCredentials.email, "completelyWrong123")))
-            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-        }) {
-            if (response.content != Messages.invalidEmailPassword || response.status() != HttpStatusCode.Forbidden)
-                return@withApplication CheckResult.wrong("Error when authorizing a user using a wrong password. Wrong response message or status code.")
+            if (response.status() != HttpStatusCode.OK)
+                return@withApplication CheckResult.wrong("The meal was not added. Wrong status code.")
         }
         return@withApplication CheckResult.correct()
     }
 
     @DynamicTest(order = 6)
-    fun getSignUpJWTToken(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        with(handleRequest(HttpMethod.Post, "/signin") {
-            setBody(Json.encodeToString(SignUpCredentials(currentCredentials.email, currentCredentials.password)))
+    fun failedAdditionMeal(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/meals") {
+            setBody(Json.encodeToString(currentMeal))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenStaff")
             addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
-            try {
-                val principal = Json.decodeFromString<Token>(response.content ?: "")
-                signUpToken = principal.token
-                if (!signUpToken.matches(jwtRegex) || signUpToken.contains(currentCredentials.email))
-                    return@withApplication CheckResult.wrong("Invalid JWT token")
-            } catch (e: Exception) {
-                return@withApplication CheckResult.wrong("Cannot get token form /signup request")
-            }
+            if (response.status() != HttpStatusCode.BadRequest)
+                return@withApplication CheckResult.wrong("The meal was added twice. Wrong status code.")
         }
         return@withApplication CheckResult.correct()
     }
 
     @DynamicTest(order = 7)
-    fun wrongValidation(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        with(handleRequest(HttpMethod.Get, "/validate") {
-            addHeader(
-                HttpHeaders.Authorization,
-                "Bearer lala${(100..999).random()}.blo${(100..999).random()}blo.kek${(100..999).random()}"
-            )
+    fun successAdditionCategory(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/categories") {
+            setBody(Json.encodeToString(currentCategory))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenStaff")
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
-            if (response.status() != HttpStatusCode.Unauthorized)
-                return@withApplication CheckResult.wrong("Wrong status code when authorizing with a completely wrong token using /validate")
-        }
-        with(handleRequest(HttpMethod.Get, "/validate") {
-            addHeader(HttpHeaders.Authorization, signInToken)
-        }) {
-            if (response.status() != HttpStatusCode.Unauthorized)
-                return@withApplication CheckResult.wrong("Wrong status code when authorizing with a JWT token using /validate. Do you use \"Bearer\" in header?")
+            if (response.status() != HttpStatusCode.OK)
+                return@withApplication CheckResult.wrong("The category was not added. Wrong status code.")
         }
         return@withApplication CheckResult.correct()
     }
 
     @DynamicTest(order = 8)
-    fun correctValidation(): CheckResult = withApplication(
-        createTestEnvironment { config = HoconApplicationConfig(ConfigFactory.load("application.conf")) })
-    {
-        with(handleRequest(HttpMethod.Get, "/validate") {
-            addHeader(HttpHeaders.Authorization, "Bearer $signInToken")
+    fun failedAdditionCategory(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Post, "/categories") {
+            setBody(Json.encodeToString(currentCategory))
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenStaff")
+            addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
         }) {
-            if (response.status() != HttpStatusCode.OK || response.content != "Hello, ${currentCredentials.userType} ${currentCredentials.email}")
-                return@withApplication CheckResult.wrong("Token validation with signin token failed.\nStatus code should be \"200 OK\"\nMessage should be \"Hello, ${currentCredentials.userType} ${currentCredentials.email}\"")
-        }
-        with(handleRequest(HttpMethod.Get, "/validate") {
-            addHeader(HttpHeaders.Authorization, "Bearer $signUpToken")
-        }) {
-            if (response.status() != HttpStatusCode.OK || response.content != "Hello, ${currentCredentials.userType} ${currentCredentials.email}")
-                return@withApplication CheckResult.wrong("Token validation with signup token failed.\nStatus code should be \"200 OK\"\nMessage should be \"Hello, ${currentCredentials.userType} ${currentCredentials.email}\"")
+            if (response.status() != HttpStatusCode.BadRequest)
+                return@withApplication CheckResult.wrong("The category was added twice. Wrong status code.")
         }
         return@withApplication CheckResult.correct()
     }
+
+    @DynamicTest(order = 9)
+    fun getMealById(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Get, "/meals?id=${currentMeal.mealId}") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+        }) {
+            if (response.content != Json.encodeToString(currentMeal))
+                return@withApplication CheckResult.wrong("Wrong meal by id.")
+        }
+        return@withApplication CheckResult.correct()
+    }
+
+    @DynamicTest(order = 10)
+    fun getCategoryById(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Get, "/categories?id=${currentCategory.categoryId}") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+        }) {
+            if (response.content != Json.encodeToString(currentCategory))
+                return@withApplication CheckResult.wrong("Wrong category by id.")
+        }
+        return@withApplication CheckResult.correct()
+    }
+
+
+    @DynamicTest(order = 11)
+    fun getMeals(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Get, "/meals") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+        }) {
+            val meals: List<Meal> = Json.decodeFromString(response.content ?: "")
+            var flag = true
+            for (meal in meals) {
+                if (meal.mealId == currentMeal.mealId) {
+                    flag = false
+                    break
+                }
+            }
+            if (flag) return@withApplication CheckResult.wrong("Wrong meals list. The newly added meal is missing.")
+            if (response.status() != HttpStatusCode.OK)
+                return@withApplication CheckResult.wrong("Wrong status code in /meals")
+        }
+        return@withApplication CheckResult.correct()
+    }
+
+    @DynamicTest(order = 12)
+    fun getCategories(): CheckResult = withApplication(createTestEnvironment {
+        config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
+    }) {
+        with(handleRequest(HttpMethod.Get, "/categories") {
+            addHeader(HttpHeaders.Authorization, "Bearer $signInTokenClient")
+        }) {
+            val categories: List<Category> = Json.decodeFromString(response.content ?: "")
+            var flag = true
+            for (category in categories) {
+                if (category.categoryId == currentCategory.categoryId) {
+                    flag = false
+                    break
+                }
+            }
+            if (flag)
+                return@withApplication CheckResult.wrong("Wrong categories list. The newly added category is missing.")
+            if (response.status() != HttpStatusCode.OK)
+                return@withApplication CheckResult.wrong("Wrong status code in /categories")
+        }
+        return@withApplication CheckResult.correct()
+    }
+
 }

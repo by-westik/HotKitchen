@@ -1,10 +1,8 @@
 package hotkitchen.routing
 
-import hotkitchen.data.ResponseStatus
-import hotkitchen.data.ResponseToken
-import hotkitchen.data.SignIn
-import hotkitchen.data.User
+import hotkitchen.data.*
 import hotkitchen.database.DatabaseController
+import hotkitchen.utils.BadRequestException
 import hotkitchen.utils.checkEmail
 import hotkitchen.utils.checkPassword
 import hotkitchen.utils.generateToken
@@ -15,6 +13,8 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 fun Application.configureRouting() {
     routing {
@@ -22,6 +22,7 @@ fun Application.configureRouting() {
             call.respondText("Hello World!")
         }
         post("/signup") {
+            println("dignup1")
             val user = call.receive<User>()
             checkEmail(user.email)
             checkPassword(user.password)
@@ -56,6 +57,58 @@ fun Application.configureRouting() {
                     call.respond(HttpStatusCode.Unauthorized)
                 }
             }
+
+            get("/me") {
+                try {
+                    println("1")
+                    val principal = call.principal<JWTPrincipal>()
+                    val email = principal!!.payload.getClaim("email").asString()
+                    val user = DatabaseController.getUserInfoByEmail(email)
+                    if (user != null) {
+                        if (user.name.isNullOrBlank() || user.phone.isNullOrBlank() || user.address.isNullOrBlank() ) {
+                            call.respond(HttpStatusCode.BadRequest)
+                        } else {
+                            call.respondText(Json.encodeToString(user), ContentType.Application.Json)
+                        }
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest)
+                    }
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+            }
+
+            put("/me") {
+                try {
+                    val principal = call.principal<JWTPrincipal>()
+                    val email = principal!!.payload.getClaim("email").asString()
+                    val user = DatabaseController.getUserInfoByEmail(email)
+                    val userInfo = call.receive<UserInfo>()
+
+                    if (user != null) {
+                        DatabaseController.updateUserByEmail(email, userInfo)
+                    } else {
+                        DatabaseController.saveUser(userInfo)
+                    }
+                    call.respond(HttpStatusCode.OK)
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+            }
+            delete("/me") {
+                try {
+                    val principal = call.principal<JWTPrincipal>()
+                    val email = principal!!.payload.getClaim("email").asString()
+
+                    if (!DatabaseController.deleteUserByEmail(email))
+                        throw BadRequestException()
+                    call.respond(HttpStatusCode.OK)
+                } catch (_: Exception) {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+
+            }
         }
+
     }
 }

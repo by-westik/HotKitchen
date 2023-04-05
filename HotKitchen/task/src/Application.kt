@@ -47,5 +47,8 @@ fun Application.configurePages() {
         exception<ForbiddenException> { cause ->
             call.respond(HttpStatusCode.Forbidden, ResponseStatus((cause.message ?: "")))
         }
+        exception<BadRequestException> {
+            call.respond(HttpStatusCode.BadRequest)
+        }
     }
 }

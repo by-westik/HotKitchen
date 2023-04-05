@@ -1,17 +1,5 @@
 type: edu
 files:
-- name: src/resources/application.conf
-  visible: true
-  text: |-
-    ktor {
-        deployment {
-            port = 28888
-        }
-        application {
-            modules = [hotkitchen.ApplicationKt.module]
-        }
-    }
-  learner_created: false
 - name: src/Application.kt
   visible: true
   text: |-
@@ -65,6 +53,280 @@ files:
         implementation("org.postgresql:postgresql:42.3.2")
     }
   learner_created: false
+- name: src/database/UserTable.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import org.jetbrains.exposed.dao.id.IntIdTable
+    import org.jetbrains.exposed.sql.Column
+
+    object UserTable : IntIdTable() {
+        val email: Column<String> = text("email")
+        val userType: Column<String> = text("userType")
+        val password: Column<String> = text("password")
+    }
+  learner_created: true
+- name: src/data/ResponseStatus.kt
+  visible: true
+  text: |-
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class ResponseStatus(
+        val status: String
+    )
+  learner_created: true
+- name: src/utils/TokenUtils.kt
+  visible: true
+  text: |+
+    package hotkitchen.utils
+
+    import com.auth0.jwt.JWT
+    import com.auth0.jwt.algorithms.Algorithm
+    import com.typesafe.config.ConfigFactory
+    import hotkitchen.data.User
+    import io.ktor.config.*
+    import java.util.*
+
+    //val secret = environment.config.property("jwt.secret").getString()
+
+    val secret = HoconApplicationConfig(ConfigFactory.load()).property("jwt.secret").getString()
+    fun generateToken(user: User): String = JWT.create()
+            .withClaim("email", user.email)
+            .withClaim("userType", user.userType)
+            .withExpiresAt(Date(System.currentTimeMillis() + 60000))
+            .sign(Algorithm.HMAC256(secret))
+
+  learner_created: true
+- name: src/database/DatabaseFactory.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import com.typesafe.config.ConfigFactory
+    import com.zaxxer.hikari.HikariConfig
+    import com.zaxxer.hikari.HikariDataSource
+    import io.ktor.application.*
+    import io.ktor.config.*
+    import org.jetbrains.exposed.sql.Database
+    import org.jetbrains.exposed.sql.SchemaUtils
+    import org.jetbrains.exposed.sql.StdOutSqlLogger
+    import org.jetbrains.exposed.sql.addLogger
+    import org.jetbrains.exposed.sql.transactions.transaction
+
+    object DatabaseFactory {
+
+        private val appConfig = HoconApplicationConfig(ConfigFactory.load())
+        private val driverClassName = appConfig.property("storage.driverClassName").getString()
+        private val dbUrl = appConfig.property("storage.jdbcURL").getString()
+        private val dbUser = appConfig.property("storage.username").getString()
+        private val dbUserPassword = appConfig.property("storage.password").getString()
+
+        fun init() {
+            Database.connect(hikari())
+        }
+
+        private fun hikari(): HikariDataSource {
+            val config = HikariConfig()
+            config.driverClassName = driverClassName
+            config.username = dbUser
+            config.jdbcUrl = dbUrl
+            config.password = dbUserPassword
+            config.maximumPoolSize = 3
+            config.isAutoCommit = false
+            config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            config.validate()
+            return HikariDataSource(config)
+        }
+    }
+
+    fun Application.configureDatabase() {
+        DatabaseFactory.init()
+        transaction {
+           SchemaUtils.create(UserTable)
+        }
+        transaction {
+            addLogger(StdOutSqlLogger)
+        }
+    }
+  learner_created: true
+- name: src/data/User.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class User(
+        val email: String,
+        val userType: String,
+        val password: String
+    )
+  learner_created: true
+- name: src/data/ResponseToken.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class ResponseToken(
+        val token: String
+    )
+  learner_created: true
+- name: src/utils/AuthUtils.kt
+  visible: true
+  text: |-
+    package hotkitchen.utils
+
+    class ForbiddenException(message: String?) : Exception(message)
+    val emailRegex = """(^[a-zA-Z0-9_+-.]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+${'$'})"""
+    fun checkEmail(email: String) {
+        if (!email.matches(emailRegex.toRegex()))
+            throw ForbiddenException("Invalid email")
+    }
+
+    fun checkPassword(password: String){
+        if (password.length < 6
+                || password.all { char -> char.isDigit() }
+                || password.all { char ->  char.isLetter() }
+                || password.all { char -> !char.isLetter() && !char.isDigit() })
+            throw ForbiddenException("Invalid password")
+    }
+  learner_created: true
+- name: src/data/SignIn.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class SignIn(
+        val email: String,
+        val password: String
+    )
+  learner_created: true
+- name: src/Test.http
+  visible: true
+  text: |
+    POST http://localhost:28852/signup
+    Content-Type: application/json
+
+    {
+        "email":"t2333yry@mail.ru",
+        "userType":"stuff",
+        "password": ""
+    }
+  learner_created: true
+- name: src/data/UserInfo.kt
+  visible: true
+  learner_created: true
+- name: src/database/DatabaseController.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import hotkitchen.data.User
+    import org.jetbrains.exposed.sql.insert
+    import org.jetbrains.exposed.sql.select
+    import org.jetbrains.exposed.sql.transactions.transaction
+
+    object DatabaseController {
+
+        suspend fun getUserByEmail(email: String) = transaction {
+            val query = UserTable.select { UserTable.email eq email }
+            query.mapNotNull {
+                User(
+                    email = it[UserTable.email],
+                    password = it[UserTable.password],
+                    userType = it[UserTable.userType]
+                )
+            }.singleOrNull()
+        }
+
+        suspend fun saveUser(user: User) = transaction {
+            UserTable.insert {
+                it[email] = user.email
+                it[password] = user.password
+                it[userType] = user.userType
+            }
+        }
+    }
+  learner_created: true
+- name: src/routing/Routing.kt
+  visible: true
+  text: |-
+    package hotkitchen.routing
+
+    import hotkitchen.data.ResponseStatus
+    import hotkitchen.data.ResponseToken
+    import hotkitchen.data.SignIn
+    import hotkitchen.data.User
+    import hotkitchen.database.DatabaseController
+    import hotkitchen.utils.checkEmail
+    import hotkitchen.utils.checkPassword
+    import hotkitchen.utils.generateToken
+    import io.ktor.application.*
+    import io.ktor.auth.*
+    import io.ktor.auth.jwt.*
+    import io.ktor.http.*
+    import io.ktor.request.*
+    import io.ktor.response.*
+    import io.ktor.routing.*
+
+    fun Application.configureRouting() {
+        routing {
+            get("/main"){
+                call.respondText("Hello World!")
+            }
+            post("/signup") {
+                val user = call.receive<User>()
+                checkEmail(user.email)
+                checkPassword(user.password)
+                if (DatabaseController.getUserByEmail(user.email) == null) {
+                    DatabaseController.saveUser(user)
+                    call.respond(HttpStatusCode.OK, ResponseToken(generateToken(user)))
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, ResponseStatus("User already exists"))
+                }
+
+            }
+
+            post("/signin") {
+                val signInUser = call.receive<SignIn>()
+                val user = DatabaseController.getUserByEmail(signInUser.email)
+                if (user != null && user.password == signInUser.password) {
+                    call.respond(HttpStatusCode.OK, ResponseToken(generateToken(user)))
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, ResponseStatus("Invalid email or password"))
+                }
+            }
+
+            authenticate {
+                get("/validate") {
+                    try {
+                        val principal = call.principal<JWTPrincipal>()
+                        val email = principal!!.payload.getClaim("email").asString()
+                        val userType = principal.payload.getClaim("userType").asString()
+                        //call.respond(HttpStatusCode.OK)
+                        call.respondText("Hello, $userType $email")
+                    } catch (e: Exception) {
+                        call.respond(HttpStatusCode.Unauthorized)
+                    }
+                }
+            }
+        }
+    }
+  learner_created: true
+- name: test/SimpleTest.kt
+  visible: true
+  learner_created: true
 - name: test/HotKitchenTest.kt
   visible: false
   text: |-
@@ -280,6 +542,21 @@ files:
         }
     }
   learner_created: false
+- name: src/resources/application.conf
+  visible: true
+  text: |-
+    ktor {
+        deployment {
+            port = 28888
+        }
+        application {
+            modules = [hotkitchen.ApplicationKt.module]
+        }
+    }
+  learner_created: false
 feedback_link: https://hyperskill.org/learn/step/22605#comment
-status: Unchecked
-record: -1
+status: Solved
+feedback:
+  message: Congratulations!
+  time: "Wed, 05 Apr 2023 17:55:31 UTC"
+record: 3
