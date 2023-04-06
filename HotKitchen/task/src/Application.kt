@@ -7,13 +7,18 @@ import hotkitchen.routing.configureRouting
 import io.ktor.application.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
-import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.response.*
 import io.ktor.serialization.*
 
 import hotkitchen.data.ResponseStatus
+import hotkitchen.routing.categoryRouting
+import hotkitchen.routing.mealRouting
 import hotkitchen.utils.ForbiddenException
+import hotkitchen.utils.UnauthorizedException
+import hotkitchen.utils.BadRequestException
+import io.ktor.features.*
+
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -21,6 +26,8 @@ fun Application.module(testing: Boolean = false) {
     configureAuthentication()
     configurePages()
     configureRouting()
+    mealRouting()
+    categoryRouting()
     configureDatabase()
     install(ContentNegotiation) { json() }
 }
@@ -49,6 +56,9 @@ fun Application.configurePages() {
         }
         exception<BadRequestException> {
             call.respond(HttpStatusCode.BadRequest)
+        }
+        exception<UnauthorizedException> {
+            call.respond(HttpStatusCode.Unauthorized)
         }
     }
 }

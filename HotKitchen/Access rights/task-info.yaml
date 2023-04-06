@@ -957,6 +957,15 @@ files:
 - name: src/data/Category.kt
   visible: true
   learner_created: true
+- name: src/routing/mealRouting.kt
+  visible: true
+  learner_created: true
+- name: src/routing/CategoryRouting.kt
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22606#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations!
+  time: "Thu, 06 Apr 2023 14:04:12 UTC"
 record: -1

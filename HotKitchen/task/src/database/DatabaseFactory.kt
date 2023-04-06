@@ -40,7 +40,9 @@ object DatabaseFactory {
 fun Application.configureDatabase() {
     DatabaseFactory.init()
     transaction {
-       SchemaUtils.create(UserTable)
+        SchemaUtils.create(UserTable)
+        SchemaUtils.create(MealTable)
+        SchemaUtils.create(CategoryTable)
     }
     transaction {
         addLogger(StdOutSqlLogger)

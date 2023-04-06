@@ -2,10 +2,7 @@ package hotkitchen.routing
 
 import hotkitchen.data.*
 import hotkitchen.database.DatabaseController
-import hotkitchen.utils.BadRequestException
-import hotkitchen.utils.checkEmail
-import hotkitchen.utils.checkPassword
-import hotkitchen.utils.generateToken
+import hotkitchen.utils.*
 import io.ktor.application.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
@@ -54,13 +51,12 @@ fun Application.configureRouting() {
                     //call.respond(HttpStatusCode.OK)
                     call.respondText("Hello, $userType $email")
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.Unauthorized)
+                    throw UnauthorizedException()
                 }
             }
 
             get("/me") {
                 try {
-                    println("1")
                     val principal = call.principal<JWTPrincipal>()
                     val email = principal!!.payload.getClaim("email").asString()
                     val user = DatabaseController.getUserInfoByEmail(email)
@@ -74,7 +70,7 @@ fun Application.configureRouting() {
                         call.respond(HttpStatusCode.BadRequest)
                     }
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest)
+                    throw BadRequestException()
                 }
             }
 
@@ -92,7 +88,7 @@ fun Application.configureRouting() {
                     }
                     call.respond(HttpStatusCode.OK)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest)
+                    throw BadRequestException()
                 }
             }
             delete("/me") {
@@ -103,11 +99,13 @@ fun Application.configureRouting() {
                     if (!DatabaseController.deleteUserByEmail(email))
                         throw BadRequestException()
                     call.respond(HttpStatusCode.OK)
-                } catch (_: Exception) {
-                    call.respond(HttpStatusCode.BadRequest)
+                } catch (e: Exception) {
+                    throw BadRequestException()
                 }
 
             }
+
+
         }
 
     }
