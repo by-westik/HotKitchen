@@ -1,17 +1,5 @@
 type: edu
 files:
-- name: src/resources/application.conf
-  visible: true
-  text: |-
-    ktor {
-        deployment {
-            port = 28888
-        }
-        application {
-            modules = [hotkitchen.ApplicationKt.module]
-        }
-    }
-  learner_created: false
 - name: src/Application.kt
   visible: true
   text: |-
@@ -944,6 +932,30 @@ files:
             UserTable.deleteWhere { UserTable.email eq email } > 0
         }
     }
+  learner_created: true
+- name: src/resources/application.conf
+  visible: true
+  text: |-
+    ktor {
+        deployment {
+            port = 28888
+        }
+        application {
+            modules = [hotkitchen.ApplicationKt.module]
+        }
+    }
+  learner_created: false
+- name: src/database/MealTable.kt
+  visible: true
+  learner_created: true
+- name: src/database/CategoryTable.kt
+  visible: true
+  learner_created: true
+- name: src/data/Meal.kt
+  visible: true
+  learner_created: true
+- name: src/data/Category.kt
+  visible: true
   learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22606#comment
 status: Unchecked
