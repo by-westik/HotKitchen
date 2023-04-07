@@ -43,6 +43,7 @@ fun Application.configureDatabase() {
         SchemaUtils.create(UserTable)
         SchemaUtils.create(MealTable)
         SchemaUtils.create(CategoryTable)
+        SchemaUtils.create(OrderTable)
     }
     transaction {
         addLogger(StdOutSqlLogger)

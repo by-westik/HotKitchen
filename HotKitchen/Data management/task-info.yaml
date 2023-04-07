@@ -597,6 +597,661 @@ files:
         }
     }
   learner_created: false
+- name: src/data/Category.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class Category (
+        val categoryId: Int,
+        val title: String,
+        val description: String
+    )
+  learner_created: true
+- name: src/database/UserTable.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import org.jetbrains.exposed.dao.id.IntIdTable
+    import org.jetbrains.exposed.sql.Column
+
+    object UserTable : IntIdTable() {
+        val email: Column<String> = text("email")
+        val userType: Column<String> = text("userType")
+        val password: Column<String> = text("password")
+        val phone: Column<String?> = text("phone").nullable()
+        val address: Column<String?> = text("address").nullable()
+        val name: Column<String?> = text("name").nullable()
+    }
+  learner_created: true
+- name: src/data/ResponseStatus.kt
+  visible: true
+  text: |-
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class ResponseStatus(
+        val status: String
+    )
+  learner_created: true
+- name: src/utils/TokenUtils.kt
+  visible: true
+  text: |+
+    package hotkitchen.utils
+
+    import com.auth0.jwt.JWT
+    import com.auth0.jwt.algorithms.Algorithm
+    import com.typesafe.config.ConfigFactory
+    import hotkitchen.data.User
+    import io.ktor.config.*
+    import java.util.*
+
+    //val secret = environment.config.property("jwt.secret").getString()
+
+    val secret = HoconApplicationConfig(ConfigFactory.load()).property("jwt.secret").getString()
+    fun generateToken(user: User): String = JWT.create()
+            .withClaim("email", user.email)
+            .withClaim("userType", user.userType)
+            .withExpiresAt(Date(System.currentTimeMillis() + 60000))
+            .sign(Algorithm.HMAC256(secret))
+
+  learner_created: true
+- name: src/database/DatabaseFactory.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import com.typesafe.config.ConfigFactory
+    import com.zaxxer.hikari.HikariConfig
+    import com.zaxxer.hikari.HikariDataSource
+    import io.ktor.application.*
+    import io.ktor.config.*
+    import org.jetbrains.exposed.sql.Database
+    import org.jetbrains.exposed.sql.SchemaUtils
+    import org.jetbrains.exposed.sql.StdOutSqlLogger
+    import org.jetbrains.exposed.sql.addLogger
+    import org.jetbrains.exposed.sql.transactions.transaction
+
+    object DatabaseFactory {
+
+        private val appConfig = HoconApplicationConfig(ConfigFactory.load())
+        private val driverClassName = appConfig.property("storage.driverClassName").getString()
+        private val dbUrl = appConfig.property("storage.jdbcURL").getString()
+        private val dbUser = appConfig.property("storage.username").getString()
+        private val dbUserPassword = appConfig.property("storage.password").getString()
+
+        fun init() {
+            Database.connect(hikari())
+        }
+
+        private fun hikari(): HikariDataSource {
+            val config = HikariConfig()
+            config.driverClassName = driverClassName
+            config.username = dbUser
+            config.jdbcUrl = dbUrl
+            config.password = dbUserPassword
+            config.maximumPoolSize = 3
+            config.isAutoCommit = false
+            config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            config.validate()
+            return HikariDataSource(config)
+        }
+    }
+
+    fun Application.configureDatabase() {
+        DatabaseFactory.init()
+        transaction {
+            SchemaUtils.create(UserTable)
+            SchemaUtils.create(MealTable)
+            SchemaUtils.create(CategoryTable)
+        }
+        transaction {
+            addLogger(StdOutSqlLogger)
+        }
+    }
+  learner_created: true
+- name: src/data/User.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class User(
+        val email: String,
+        val userType: String,
+        val password: String
+    )
+  learner_created: true
+- name: src/data/UserInfo.kt
+  visible: true
+  text: |-
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class UserInfo (
+        val name: String?,
+        val userType: String,
+        val phone: String?,
+        val email: String,
+        val address: String?
+    )
+  learner_created: true
+- name: src/routing/CategoryRouting.kt
+  visible: true
+  text: |-
+    package hotkitchen.routing
+
+    import hotkitchen.data.Category
+    import hotkitchen.database.DatabaseController
+    import hotkitchen.utils.BadRequestException
+    import hotkitchen.utils.ForbiddenException
+    import io.ktor.application.*
+    import io.ktor.auth.*
+    import io.ktor.auth.jwt.*
+    import io.ktor.http.*
+    import io.ktor.request.*
+    import io.ktor.response.*
+    import io.ktor.routing.*
+    import kotlinx.serialization.encodeToString
+    import kotlinx.serialization.json.Json
+
+    fun Application.categoryRouting() {
+        routing {
+            authenticate {
+                post("/categories") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val userType = principal!!.payload.getClaim("userType").asString()
+
+                    if (userType != "staff") throw ForbiddenException("Access denied")
+
+                    val category = call.receive<Category>()
+                    if (DatabaseController.getCategoryById(category.categoryId) != null)
+                        throw BadRequestException()
+                    DatabaseController.addCategory(category)
+                    call.respondText(Json.encodeToString(category), ContentType.Application.Json)
+
+                }
+
+                get("/categories") {
+                    val categoryId = call.request.queryParameters["id"]
+                    if (categoryId == null){
+                        call.respond(HttpStatusCode.OK, DatabaseController.getAllCategories())
+                    } else {
+                        val category = DatabaseController.getCategoryById(categoryId.toInt())
+                        if (category == null) {
+                            throw BadRequestException()
+                        } else {
+                            call.respondText(Json.encodeToString(category), ContentType.Application.Json)
+                        }
+                    }
+
+                }
+            }
+        }
+
+    }
+  learner_created: true
+- name: src/data/ResponseToken.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class ResponseToken(
+        val token: String
+    )
+  learner_created: true
+- name: src/utils/AuthUtils.kt
+  visible: true
+  text: |-
+    package hotkitchen.utils
+
+    class ForbiddenException(message: String?) : Exception(message)
+    class BadRequestException() : Exception()
+    class UnauthorizedException : Exception()
+
+    val emailRegex = """(^[a-zA-Z0-9_+-.]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+${'$'})"""
+    fun checkEmail(email: String) {
+        if (!email.matches(emailRegex.toRegex()))
+            throw ForbiddenException("Invalid email")
+    }
+
+    fun checkPassword(password: String){
+        if (password.length < 6
+                || password.all { char -> char.isDigit() }
+                || password.all { char ->  char.isLetter() }
+                || password.all { char -> !char.isLetter() && !char.isDigit() })
+            throw ForbiddenException("Invalid password")
+    }
+  learner_created: true
+- name: src/data/Meal.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class Meal(
+        val mealId: Int,
+        val title: String,
+        val price: Float,
+        val imageUrl: String,
+        val categoryIds: List<Int>
+    )
+  learner_created: true
+- name: src/routing/Routing.kt
+  visible: true
+  text: |-
+    package hotkitchen.routing
+
+    import hotkitchen.data.*
+    import hotkitchen.database.DatabaseController
+    import hotkitchen.utils.*
+    import io.ktor.application.*
+    import io.ktor.auth.*
+    import io.ktor.auth.jwt.*
+    import io.ktor.http.*
+    import io.ktor.request.*
+    import io.ktor.response.*
+    import io.ktor.routing.*
+    import kotlinx.serialization.encodeToString
+    import kotlinx.serialization.json.Json
+
+    fun Application.configureRouting() {
+        routing {
+            get("/main"){
+                call.respondText("Hello World!")
+            }
+            post("/signup") {
+                println("dignup1")
+                val user = call.receive<User>()
+                checkEmail(user.email)
+                checkPassword(user.password)
+                if (DatabaseController.getUserByEmail(user.email) == null) {
+                    DatabaseController.saveUser(user)
+                    call.respond(HttpStatusCode.OK, ResponseToken(generateToken(user)))
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, ResponseStatus("User already exists"))
+                }
+
+            }
+
+            post("/signin") {
+                val signInUser = call.receive<SignIn>()
+                val user = DatabaseController.getUserByEmail(signInUser.email)
+                if (user != null && user.password == signInUser.password) {
+                    call.respond(HttpStatusCode.OK, ResponseToken(generateToken(user)))
+                } else {
+                    call.respond(HttpStatusCode.Forbidden, ResponseStatus("Invalid email or password"))
+                }
+            }
+
+            authenticate {
+                get("/validate") {
+                    try {
+                        val principal = call.principal<JWTPrincipal>()
+                        val email = principal!!.payload.getClaim("email").asString()
+                        val userType = principal.payload.getClaim("userType").asString()
+                        //call.respond(HttpStatusCode.OK)
+                        call.respondText("Hello, $userType $email")
+                    } catch (e: Exception) {
+                        throw UnauthorizedException()
+                    }
+                }
+
+                get("/me") {
+                    try {
+                        val principal = call.principal<JWTPrincipal>()
+                        val email = principal!!.payload.getClaim("email").asString()
+                        val user = DatabaseController.getUserInfoByEmail(email)
+                        if (user != null) {
+                            if (user.name.isNullOrBlank() || user.phone.isNullOrBlank() || user.address.isNullOrBlank() ) {
+                                call.respond(HttpStatusCode.BadRequest)
+                            } else {
+                                call.respondText(Json.encodeToString(user), ContentType.Application.Json)
+                            }
+                        } else {
+                            call.respond(HttpStatusCode.BadRequest)
+                        }
+                    } catch (e: Exception) {
+                        throw BadRequestException()
+                    }
+                }
+
+                put("/me") {
+                    try {
+                        val principal = call.principal<JWTPrincipal>()
+                        val email = principal!!.payload.getClaim("email").asString()
+                        val user = DatabaseController.getUserInfoByEmail(email)
+                        val userInfo = call.receive<UserInfo>()
+
+                        if (user != null) {
+                            DatabaseController.updateUserByEmail(email, userInfo)
+                        } else {
+                            DatabaseController.saveUser(userInfo)
+                        }
+                        call.respond(HttpStatusCode.OK)
+                    } catch (e: Exception) {
+                        throw BadRequestException()
+                    }
+                }
+                delete("/me") {
+                    try {
+                        val principal = call.principal<JWTPrincipal>()
+                        val email = principal!!.payload.getClaim("email").asString()
+
+                        if (!DatabaseController.deleteUserByEmail(email))
+                            throw BadRequestException()
+                        call.respond(HttpStatusCode.OK)
+                    } catch (e: Exception) {
+                        throw BadRequestException()
+                    }
+
+                }
+
+
+            }
+
+        }
+    }
+  learner_created: true
+- name: src/database/CategoryTable.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import org.jetbrains.exposed.sql.Table
+
+    object CategoryTable : Table() {
+        val categoryId = integer("categoryId")
+        val title = text("title")
+        val description = text("description")
+
+        override val primaryKey = PrimaryKey(categoryId)
+    }
+  learner_created: true
+- name: src/data/SignIn.kt
+  visible: true
+  text: |
+    package hotkitchen.data
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class SignIn(
+        val email: String,
+        val password: String
+    )
+  learner_created: true
+- name: src/database/MealTable.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import org.jetbrains.exposed.sql.Column
+    import org.jetbrains.exposed.sql.Table
+
+    object MealTable : Table() {
+        val mealId = integer("mealId")
+        val title = text("title")
+        val price = float("price")
+        val imageUrl = text("imageUrl")
+        val categoryIds = text("categoryIds")
+
+        override val primaryKey = PrimaryKey(mealId)
+    }
+  learner_created: true
+- name: src/routing/mealRouting.kt
+  visible: true
+  text: |-
+    package hotkitchen.routing
+
+
+    import hotkitchen.data.Meal
+    import hotkitchen.database.DatabaseController
+    import hotkitchen.utils.BadRequestException
+    import hotkitchen.utils.ForbiddenException
+    import io.ktor.application.*
+    import io.ktor.auth.*
+    import io.ktor.auth.jwt.*
+    import io.ktor.http.*
+    import io.ktor.request.*
+    import io.ktor.response.*
+    import io.ktor.routing.*
+    import kotlinx.serialization.encodeToString
+    import kotlinx.serialization.json.Json
+
+    fun Application.mealRouting() {
+        routing {
+            authenticate {
+                post("/meals") {
+                    val principal = call.principal<JWTPrincipal>()
+                    val userType = principal!!.payload.getClaim("userType").asString()
+                    if (userType != "staff") throw ForbiddenException("Access denied")
+                    val meal = call.receive<Meal>()
+                    if (DatabaseController.getMealById(meal.mealId) != null) {
+                        throw BadRequestException()
+                    }
+                    DatabaseController.addMeal(meal)
+                    call.respondText(Json.encodeToString(meal), ContentType.Application.Json)
+                }
+
+                get("/meals") {
+                    val mealId = call.request.queryParameters["id"]
+                    if (mealId == null) {
+                        call.respond(HttpStatusCode.OK, DatabaseController.getAllMeals())
+                    } else {
+                        val meal = DatabaseController.getMealById(mealId.toInt())
+                        if (meal == null)  {
+                            throw BadRequestException()
+                        } else {
+                            call.respondText(Json.encodeToString(meal), ContentType.Application.Json)
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
+  learner_created: true
+- name: src/Test.http
+  visible: true
+  text: |
+    POST http://localhost:28852/signup
+    Content-Type: application/json
+
+    {
+        "email":"t2333yry@mail.ru",
+        "userType":"stuff",
+        "password": ""
+    }
+  learner_created: true
+- name: src/database/DatabaseController.kt
+  visible: true
+  text: |-
+    package hotkitchen.database
+
+    import hotkitchen.data.Category
+    import hotkitchen.data.Meal
+    import hotkitchen.data.User
+    import hotkitchen.data.UserInfo
+    import hotkitchen.utils.BadRequestException
+    import kotlinx.serialization.decodeFromString
+    import kotlinx.serialization.encodeToString
+    import kotlinx.serialization.json.Json
+    import org.jetbrains.exposed.sql.*
+    import org.jetbrains.exposed.sql.transactions.transaction
+
+    object DatabaseController {
+
+        suspend fun getUserByEmail(email: String) = transaction {
+            val query = UserTable.select { UserTable.email eq email }
+            query.mapNotNull {
+                User(
+                    email = it[UserTable.email],
+                    password = it[UserTable.password],
+                    userType = it[UserTable.userType]
+                )
+            }.singleOrNull()
+        }
+
+        suspend fun saveUser(user: UserInfo) = transaction {
+            UserTable.insert {
+                it[email] = user.email
+                it[userType] = user.userType
+                it[address] = user.address
+                it[phone] = user.phone
+                it[name] = user.name
+            }
+        }
+
+        suspend fun saveUser(user: User) = transaction {
+            UserTable.insert {
+                it[email] = user.email
+                it[password] = user.password
+                it[userType] = user.userType
+            }
+        }
+
+        suspend fun getUserInfoByEmail(email: String) : UserInfo? = transaction {
+            val query = UserTable.select { UserTable.email eq email }
+            query.mapNotNull {
+                UserInfo(
+                    name = it[UserTable.name],
+                    userType = it[UserTable.userType],
+                    phone = it[UserTable.phone],
+                    email = it[UserTable.email],
+                    address = it[UserTable.address]
+                )
+            }.singleOrNull()
+        }
+
+
+        suspend fun updateUserByEmail(email: String, user: UserInfo) = transaction {
+            if (email != user.email)
+                throw BadRequestException()
+
+            UserTable.update({ UserTable.email eq email }) {
+                it[name] = user.name
+                it[address] = user.address
+                it[userType] = user.userType
+                it[phone] = user.phone
+                it[UserTable.email] = user.email
+            }
+        }
+
+        suspend fun deleteUserByEmail(email: String): Boolean = transaction {
+            UserTable.deleteWhere { UserTable.email eq email } > 0
+        }
+
+        private fun resultRowToMeal(row: ResultRow) = Meal(
+            mealId = row[MealTable.mealId],
+            title = row[MealTable.title],
+            price = row[MealTable.price],
+            imageUrl = row[MealTable.imageUrl],
+            categoryIds = row[MealTable.categoryIds].map { it.code }
+        )
+
+        private fun resultRowToCategory(row: ResultRow) = Category(
+            categoryId = row[CategoryTable.categoryId],
+            title = row[CategoryTable.title],
+            description = row[CategoryTable.description]
+        )
+
+
+        suspend fun getMealById(mealId: Int): Meal? = transaction {
+            val query = MealTable.select { MealTable.mealId eq mealId }
+            query.mapNotNull {
+                Meal(
+                    mealId = it[MealTable.mealId],
+                    title = it[MealTable.title],
+                    price = it[MealTable.price],
+                    imageUrl = it[MealTable.imageUrl],
+                    categoryIds = Json.decodeFromString(it[MealTable.categoryIds])
+                )
+            }.singleOrNull()
+        }
+
+        suspend fun getCategoryById(categoryId: Int): Category? = transaction {
+            val query = CategoryTable.select { CategoryTable.categoryId eq categoryId}
+            query.mapNotNull {
+                Category(
+                    categoryId = it[CategoryTable.categoryId],
+                    title = it[CategoryTable.title],
+                    description = it[CategoryTable.description]
+                )
+            }.singleOrNull()
+        }
+
+        suspend fun addMeal(meal: Meal) = transaction {
+            MealTable.insert {
+                it[mealId] = meal.mealId
+                it[title] = meal.title
+                it[price] = meal.price
+                it[imageUrl] = meal.imageUrl
+                it[categoryIds] = Json.encodeToString(meal.categoryIds)
+            }
+        }
+        suspend fun addCategory(category: Category)= transaction {
+             CategoryTable.insert {
+                it[categoryId] = category.categoryId
+                it[title] = category.title
+                it[description] = category.description
+            }
+        }
+
+        suspend fun getAllMeals(): List<Meal> = transaction {
+            MealTable.selectAll().map {
+                Meal(
+                    mealId = it[MealTable.mealId],
+                    title = it[MealTable.title],
+                    price = it[MealTable.price],
+                    imageUrl = it[MealTable.imageUrl],
+                    categoryIds = Json.decodeFromString(it[MealTable.categoryIds])
+                )
+            }
+        }
+
+        suspend fun getAllCategories(): List<Category> = transaction {
+            CategoryTable.selectAll().map {
+                Category(
+                    categoryId = it[CategoryTable.categoryId],
+                    title = it[CategoryTable.title],
+                    description = it[CategoryTable.description]
+                )
+            }
+        }
+    }
+  learner_created: true
+- name: src/routing/OrderRouting.kt
+  visible: true
+  learner_created: true
+- name: src/database/OrderTable.kt
+  visible: true
+  learner_created: true
+- name: src/data/Order.kt
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/learn/step/22607#comment
-status: Unchecked
+status: Failed
+feedback:
+  message: |-
+    Wrong answer in test #5
+
+    Created an order with the wrong meal id. Wrong status code.
+  time: "Fri, 07 Apr 2023 08:31:17 UTC"
 record: -1
