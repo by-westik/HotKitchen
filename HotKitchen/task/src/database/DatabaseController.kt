@@ -1,14 +1,12 @@
 package hotkitchen.database
 
-import hotkitchen.data.Category
-import hotkitchen.data.Meal
-import hotkitchen.data.User
-import hotkitchen.data.UserInfo
+import hotkitchen.data.*
 import hotkitchen.utils.BadRequestException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseController {
@@ -147,6 +145,63 @@ object DatabaseController {
                 categoryId = it[CategoryTable.categoryId],
                 title = it[CategoryTable.title],
                 description = it[CategoryTable.description]
+            )
+        }
+    }
+
+    suspend fun saveOrder(order: Order) = transaction {
+        OrderTable.insert {
+            it[orderId] = order.orderId
+            it[userEmail] = order.userEmail
+            it[mealsIds] = Json.encodeToString(order.mealsIds)
+            it[price] = order.price
+            it[address] = order.address
+            it[status] = order.status
+        }
+    }
+
+    suspend fun getOrderById(orderId: Int): Order? = transaction {
+        val query = OrderTable.select { OrderTable.orderId eq orderId }
+        query.mapNotNull {
+            Order(
+                orderId = it[OrderTable.orderId],
+                userEmail = it[OrderTable.userEmail],
+                mealsIds = Json.decodeFromString(it[OrderTable.mealsIds]),
+                price = it[OrderTable.price],
+                address = it[OrderTable.address],
+                status = it[OrderTable.status]
+            )
+        }.singleOrNull()
+    }
+
+    suspend fun getAllOrders(): List<Order> = transaction {
+        OrderTable.selectAll().map {
+            Order(
+                orderId = it[OrderTable.orderId],
+                userEmail = it[OrderTable.userEmail],
+                mealsIds = Json.decodeFromString(it[OrderTable.mealsIds]),
+                price = it[OrderTable.price],
+                address = it[OrderTable.address],
+                status = it[OrderTable.status]
+            )
+        }
+    }
+
+    suspend fun updateOrderStatus(order: Order) = transaction {
+        OrderTable.update ({ OrderTable.orderId eq order.orderId }) {
+            it[status] = order.status
+        }
+    }
+
+    suspend fun getAllOrdersIncomplete(): List<Order> = transaction {
+        OrderTable.select { OrderTable.status eq "COOK" }.map {
+            Order(
+                orderId = it[OrderTable.orderId],
+                userEmail = it[OrderTable.userEmail],
+                mealsIds = Json.decodeFromString(it[OrderTable.mealsIds]),
+                price = it[OrderTable.price],
+                address = it[OrderTable.address],
+                status = it[OrderTable.status]
             )
         }
     }

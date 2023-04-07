@@ -43,7 +43,6 @@ fun Application.categoryRouting() {
                         call.respondText(Json.encodeToString(category), ContentType.Application.Json)
                     }
                 }
-
             }
         }
     }

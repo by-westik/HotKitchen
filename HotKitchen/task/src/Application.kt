@@ -14,6 +14,7 @@ import io.ktor.serialization.*
 import hotkitchen.data.ResponseStatus
 import hotkitchen.routing.categoryRouting
 import hotkitchen.routing.mealRouting
+import hotkitchen.routing.orderRouting
 import hotkitchen.utils.ForbiddenException
 import hotkitchen.utils.UnauthorizedException
 import hotkitchen.utils.BadRequestException
@@ -28,6 +29,7 @@ fun Application.module(testing: Boolean = false) {
     configureRouting()
     mealRouting()
     categoryRouting()
+    orderRouting()
     configureDatabase()
     install(ContentNegotiation) { json() }
 }

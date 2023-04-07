@@ -9,5 +9,5 @@ data class Order(
     val mealsIds: List<Int>,
     val price: Float,
     val address: String,
-    val status: String
+    var status: String
 )

@@ -9,4 +9,6 @@ object OrderTable: Table() {
     val price = float("price")
     val address = text("address")
     val status = text("status")
+
+    override val primaryKey = PrimaryKey(orderId)
 }
